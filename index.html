@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>红帆竞速 · 海上 3D 竞速</title>
+  <meta name="description" content="驾驶红白帆船穿越蓝色海湾，冲过终点浮标。" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+    :root { --ink:#10283a; --muted:#6b8291; --coral:#ed5748; --coral-dark:#cc3c35; --cream:#fffaf3; --line:rgba(16,40,58,.12); }
+    * { box-sizing:border-box; }
+    html, body { margin:0; min-height:100%; font-family:'DM Sans',sans-serif; color:var(--ink); background:#d9eff0; }
+    body { overflow-x:hidden; }
+    .app { min-height:100vh; position:relative; isolation:isolate; background:linear-gradient(180deg,#d9f0ef 0%,#c8e7e7 52%,#9acbd0 100%); }
+    .grain { position:fixed; inset:0; opacity:.12; pointer-events:none; z-index:5; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E"); mix-blend-mode:soft-light; }
+    .topbar { position:absolute; z-index:4; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:24px 42px; }
+    .brand { display:flex; align-items:center; gap:13px; font-family:'Space Grotesk',sans-serif; font-weight:700; letter-spacing:.02em; font-size:17px; }
+    .brand-mark { width:34px; height:34px; border-radius:11px; display:grid; place-items:center; color:#fff; background:var(--coral); box-shadow:0 8px 18px rgba(237,87,72,.25); }
+    .brand-mark span { display:block; width:13px; height:17px; border-left:2px solid #fff; border-top:2px solid #fff; transform:skewY(-18deg) rotate(12deg); }
+    .top-right { display:flex; align-items:center; gap:24px; font-size:12px; color:#4d6a76; }
+    .live-dot { width:7px; height:7px; background:#4db37b; border-radius:99px; box-shadow:0 0 0 5px rgba(77,179,123,.15); display:inline-block; margin-right:7px; }
+    .main { position:relative; min-height:100vh; padding:108px 42px 34px; display:grid; grid-template-columns:minmax(280px,380px) minmax(520px,1fr); gap:38px; align-items:stretch; }
+    .intro { z-index:2; display:flex; flex-direction:column; justify-content:center; padding:12px 0 30px; }
+    .eyebrow { color:var(--coral); font-size:12px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; margin-bottom:20px; }
+    h1 { font-family:'Space Grotesk',sans-serif; font-size:clamp(50px,6vw,84px); line-height:.93; letter-spacing:-.065em; margin:0 0 22px; max-width:500px; }
+    h1 em { color:var(--coral); font-style:normal; }
+    .lede { max-width:310px; font-size:15px; line-height:1.7; color:#55707c; margin:0 0 30px; }
+    .cta-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    button { font:inherit; border:0; cursor:pointer; }
+    .primary { border-radius:13px; background:var(--coral); color:#fff; font-weight:700; padding:15px 21px; box-shadow:0 10px 24px rgba(237,87,72,.28); transition:transform .2s, box-shadow .2s, background .2s; }
+    .primary:hover { transform:translateY(-2px); box-shadow:0 13px 28px rgba(237,87,72,.34); background:var(--coral-dark); }
+    .ghost { padding:14px 15px; color:#34515f; background:rgba(255,255,255,.46); border:1px solid rgba(255,255,255,.72); border-radius:13px; font-weight:600; }
+    .micro { display:flex; gap:18px; margin-top:34px; color:#6b8291; font-size:11px; align-items:center; }
+    .key { display:inline-flex; align-items:center; gap:5px; }
+    .key span { display:inline-grid; place-items:center; min-width:22px; height:22px; border:1px solid rgba(16,40,58,.17); border-radius:6px; font-size:10px; color:#425f6a; background:rgba(255,255,255,.35); }
+    .stage-wrap { min-height:620px; position:relative; display:flex; align-items:center; }
+    .stage { position:relative; width:100%; height:min(72vh,690px); min-height:590px; border-radius:32px; overflow:hidden; background:linear-gradient(180deg,#b7e0e3 0%,#70b8c0 58%,#2d7785 100%); box-shadow:0 30px 70px rgba(24,80,95,.24); }
+    .stage::before { content:""; position:absolute; inset:0; z-index:1; pointer-events:none; background:radial-gradient(circle at 18% 12%,rgba(255,255,255,.6),transparent 24%),linear-gradient(180deg,transparent 62%,rgba(7,50,67,.2)); }
+    #scene { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .hud { position:absolute; z-index:3; left:22px; right:22px; top:20px; display:flex; justify-content:space-between; align-items:flex-start; pointer-events:none; }
+    .hud-card { background:rgba(255,250,243,.86); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.7); box-shadow:0 8px 20px rgba(21,73,83,.14); border-radius:16px; padding:13px 15px; min-width:146px; }
+    .hud-label { display:block; color:#78909b; font-size:10px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:5px; }
+    .hud-value { font-family:'Space Grotesk'; font-size:25px; font-weight:700; color:var(--ink); letter-spacing:-.04em; }
+    .hud-value small { font-family:'DM Sans'; font-weight:500; font-size:11px; color:#75909a; letter-spacing:0; }
+    .progress { position:absolute; z-index:3; bottom:22px; left:22px; right:22px; display:flex; align-items:center; gap:12px; }
+    .track { height:8px; flex:1; border-radius:99px; background:rgba(255,255,255,.45); overflow:hidden; border:1px solid rgba(255,255,255,.4); }
+    .track-fill { width:18%; height:100%; border-radius:99px; background:var(--coral); transition:width .2s; box-shadow:0 0 12px rgba(237,87,72,.5); }
+    .finish { color:#fff; font-size:11px; font-weight:700; letter-spacing:.1em; }
+    .toast { position:absolute; z-index:4; top:50%; left:50%; transform:translate(-50%,-50%) scale(.96); pointer-events:none; opacity:0; color:#fff; font-family:'Space Grotesk'; font-weight:700; font-size:24px; letter-spacing:-.04em; text-align:center; text-shadow:0 3px 16px rgba(0,0,0,.25); transition:opacity .25s, transform .25s; }
+    .toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    .controls { position:absolute; z-index:4; bottom:22px; right:22px; display:flex; gap:8px; pointer-events:auto; }
+    .control { width:42px; height:38px; border-radius:11px; color:#234653; background:rgba(255,250,243,.84); border:1px solid rgba(255,255,255,.7); backdrop-filter:blur(8px); font-weight:700; box-shadow:0 5px 15px rgba(21,73,83,.12); }
+    .control:active { transform:translateY(1px); }
+    .hint { position:absolute; z-index:3; top:110px; left:22px; color:rgba(255,255,255,.8); font-size:11px; letter-spacing:.02em; background:rgba(16,40,58,.15); border-radius:99px; padding:8px 11px; backdrop-filter:blur(4px); }
+    .stats { position:absolute; z-index:2; bottom:0; left:0; right:0; display:flex; gap:28px; padding:17px 0 0; border-top:1px solid rgba(16,40,58,.1); color:#5d7884; font-size:11px; }
+    .stats strong { display:block; font-family:'Space Grotesk'; font-size:15px; color:var(--ink); margin-bottom:3px; }
+    @media (max-width:900px) { .topbar { padding:18px 22px; } .main { grid-template-columns:1fr; padding:90px 22px 24px; gap:20px; } .intro { justify-content:flex-start; padding-top:15px; } h1 { font-size:58px; } .lede { margin-bottom:21px; } .micro,.stats { display:none; } .stage-wrap { min-height:520px; } .stage { min-height:520px; height:67vh; } .top-right { display:none; } }
+    @media (max-width:560px) { h1 { font-size:49px; } .stage { border-radius:23px; } .hud-card { min-width:120px; padding:11px 12px; } .hud-value { font-size:21px; } .hint { top:92px; font-size:10px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="grain"></div>
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark"><span></span></div><span>RED SAIL CLUB</span></div>
+      <div class="top-right"><span><i class="live-dot"></i>海湾赛道 · LIVE</span><span>2024 / 09 · 01</span></div>
+    </header>
+    <main class="main">
+      <section class="intro">
+        <div class="eyebrow">单人计时挑战 · DAY 01</div>
+        <h1>乘风而行，<br><em>破浪夺冠。</em></h1>
+        <p class="lede">把风帆调到最佳角度，穿过浮标组成的红线。海上每一秒，都值得更快。</p>
+        <div class="cta-row"><button class="primary" id="startBtn">开始竞速&nbsp; →</button><button class="ghost" id="resetBtn">重置赛道</button></div>
+        <div class="micro"><span class="key"><span>W</span><span>A</span><span>S</span><span>D</span> 驾驶</span><span class="key"><span>⇧</span> 加速</span></div>
+        <div class="stats"><div><strong>3.4 NM</strong>赛道长度</div><div><strong>12</strong>个浮标</div><div><strong>01:12</strong>最佳纪录</div></div>
+      </section>
+      <section class="stage-wrap">
+        <div class="stage">
+          <canvas id="scene"></canvas>
+          <div class="hud">
+            <div class="hud-card"><span class="hud-label">当前用时</span><span class="hud-value" id="timer">00:00.00</span></div>
+            <div class="hud-card"><span class="hud-label">航速</span><span class="hud-value" id="speed">0.0 <small>节</small></span></div>
+          </div>
+          <div class="hint" id="status">准备起航 · 按开始竞速</div>
+          <div class="toast" id="toast">冲线成功<br><span style="font-size:12px;font-family:'DM Sans';font-weight:500;letter-spacing:0">你的海风记录已写入</span></div>
+          <div class="progress"><span class="finish">起点</span><div class="track"><div class="track-fill" id="progressFill"></div></div><span class="finish">终点</span></div>
+          <div class="controls"><button class="control" id="leftBtn" aria-label="左转">←</button><button class="control" id="boostBtn" aria-label="加速">⇧</button><button class="control" id="rightBtn" aria-label="右转">→</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    const canvas = document.querySelector('#scene');
+    const stage = document.querySelector('.stage');
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x72b7bf, 28, 110);
+    const camera = new THREE.PerspectiveCamera(44, 1, .1, 160);
+    camera.position.set(0, 5.8, 13); camera.lookAt(0, 0, -8);
+    const hemi = new THREE.HemisphereLight(0xfdf8e9,0x1a5562,2.3); scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xfff7dc,3.1); sun.position.set(-8,16,9); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); scene.add(sun);
+    const waterMat = new THREE.MeshStandardMaterial({color:0x258395, roughness:.82, metalness:.04, transparent:true, opacity:.96});
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(120,160,36,48), waterMat); water.rotation.x=-Math.PI/2; water.position.y=-.55; water.receiveShadow=true; scene.add(water);
+    const waveMat = new THREE.MeshBasicMaterial({color:0xb5e8e5, transparent:true, opacity:.18, side:THREE.DoubleSide});
+    for(let i=0;i<18;i++){ const wave=new THREE.Mesh(new THREE.TorusGeometry(2.8+Math.random()*1.8,.014,4,48),waveMat); wave.rotation.x=Math.PI/2; wave.rotation.z=Math.random(); wave.position.set((Math.random()-.5)*28,-.48,-i*5-4); wave.scale.set(1,.4,1); scene.add(wave); }
+    function makeIsland(x,z,s=1){ const g=new THREE.Group(); const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1.2*s,1),new THREE.MeshStandardMaterial({color:0x9b8066,roughness:1})); rock.scale.y=.55; rock.position.y=-.25; rock.castShadow=true; g.add(rock); const bush=new THREE.Mesh(new THREE.IcosahedronGeometry(1*s,1),new THREE.MeshStandardMaterial({color:0x3d7b68,roughness:1})); bush.position.set(.05,.35,0); bush.scale.set(1.15,.65,1); bush.castShadow=true; g.add(bush); g.position.set(x,0,z); scene.add(g); }
+    makeIsland(-10,-24,1.5); makeIsland(10,-38,1.2); makeIsland(-11,-58,1.35); makeIsland(9,-72,1.6);
+    const buoyMat=new THREE.MeshStandardMaterial({color:0xed5748,roughness:.5}); const whiteMat=new THREE.MeshStandardMaterial({color:0xfff8eb,roughness:.6});
+    function makeBuoy(x,z){ const g=new THREE.Group(); const body=new THREE.Mesh(new THREE.CylinderGeometry(.28,.38,.9,16),buoyMat); body.position.y=.05; body.castShadow=true; g.add(body); const top=new THREE.Mesh(new THREE.SphereGeometry(.32,14,8),whiteMat); top.position.y=.5; top.castShadow=true; g.add(top); const ring=new THREE.Mesh(new THREE.TorusGeometry(.46,.045,8,22),whiteMat); ring.rotation.x=Math.PI/2; ring.position.y=.16; g.add(ring); g.position.set(x,-.05,z); scene.add(g); return g; }
+    const buoys=[]; [-13,13,-11,11,-13,13,-10,10,-12,12].forEach((x,i)=>buoys.push(makeBuoy(x,-12-i*6)));
+    const boat=new THREE.Group(); boat.position.set(0,.12,3); boat.rotation.y=Math.PI; scene.add(boat);
+    const hull=new THREE.Mesh(new THREE.CapsuleGeometry(.72,2.5,8,16),new THREE.MeshStandardMaterial({color:0xfff8eb,roughness:.42,metalness:.05})); hull.rotation.z=Math.PI/2; hull.scale.set(1,.42,.72); hull.castShadow=true; boat.add(hull);
+    const stripe=new THREE.Mesh(new THREE.BoxGeometry(1.8,.08,.06),new THREE.MeshStandardMaterial({color:0xed5748,roughness:.45})); stripe.position.set(0,.36,0); stripe.rotation.y=Math.PI/2; boat.add(stripe);
+    const deck=new THREE.Mesh(new THREE.BoxGeometry(1.15,.12,.8),new THREE.MeshStandardMaterial({color:0xc63f39,roughness:.55})); deck.position.y=.33; deck.castShadow=true; boat.add(deck);
+    const mast=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,3.3,10),new THREE.MeshStandardMaterial({color:0x6b4337,roughness:.7})); mast.position.set(0,1.75,0); mast.castShadow=true; boat.add(mast);
+    const sailShape=new THREE.Shape(); sailShape.moveTo(0,3.25); sailShape.lineTo(0,.55); sailShape.lineTo(-1.58,.75); sailShape.lineTo(0,3.25);
+    const sail=new THREE.Mesh(new THREE.ShapeGeometry(sailShape),new THREE.MeshStandardMaterial({color:0xed5748,side:THREE.DoubleSide,roughness:.66})); sail.position.z=.02; sail.castShadow=true; boat.add(sail);
+    const sail2Shape=new THREE.Shape(); sail2Shape.moveTo(0,3.08); sail2Shape.lineTo(0,.68); sail2Shape.lineTo(.9,.8); sail2Shape.lineTo(0,3.08); const sail2=new THREE.Mesh(new THREE.ShapeGeometry(sail2Shape),new THREE.MeshStandardMaterial({color:0xfff8eb,side:THREE.DoubleSide,roughness:.7})); sail2.position.z=-.025; boat.add(sail2);
+    const flag=new THREE.Mesh(new THREE.PlaneGeometry(.55,.25),new THREE.MeshBasicMaterial({color:0xed5748,side:THREE.DoubleSide})); flag.position.set(.25,3.18,.02); boat.add(flag);
+    const wakeMat=new THREE.MeshBasicMaterial({color:0xd7f3ef,transparent:true,opacity:.42}); const wake=new THREE.Mesh(new THREE.PlaneGeometry(2.7,8),wakeMat); wake.rotation.x=-Math.PI/2; wake.position.set(0,-.42,3.2); boat.add(wake);
+    let running=false, finished=false, startTime=0, elapsed=0, progress=0, x=0, z=3, yaw=0, speed=0, boost=false; const keys={};
+    function resize(){ const r=stage.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); } addEventListener('resize',resize); resize();
+    const timerEl=document.querySelector('#timer'), speedEl=document.querySelector('#speed'), fill=document.querySelector('#progressFill'), status=document.querySelector('#status'), toast=document.querySelector('#toast');
+    function fmt(t){ const m=Math.floor(t/60).toString().padStart(2,'0'); const s=(t%60).toFixed(2).padStart(5,'0'); return `${m}:${s}`; }
+    function reset(){ running=false; finished=false; elapsed=0; progress=0; x=0; z=3; yaw=0; speed=0; boost=false; boat.position.set(0,.12,3); boat.rotation.y=Math.PI; timerEl.textContent='00:00.00'; speedEl.innerHTML='0.0 <small>节</small>'; fill.style.width='4%'; status.textContent='准备起航 · 按开始竞速'; toast.classList.remove('show'); }
+    function start(){ if(finished) reset(); running=true; startTime=performance.now()-elapsed*1000; status.textContent='顺风起航 · 保持在浮标之间'; }
+    document.querySelector('#startBtn').onclick=start; document.querySelector('#resetBtn').onclick=reset;
+    addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key==='Shift') boost=true; if(e.key===' '){e.preventDefault(); start();} }); addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; if(e.key==='Shift') boost=false; });
+    document.querySelector('#leftBtn').onpointerdown=()=>keys.a=true; document.querySelector('#leftBtn').onpointerup=()=>keys.a=false; document.querySelector('#rightBtn').onpointerdown=()=>keys.d=true; document.querySelector('#rightBtn').onpointerup=()=>keys.d=false; document.querySelector('#boostBtn').onpointerdown=()=>boost=true; document.querySelector('#boostBtn').onpointerup=()=>boost=false;
+    const clock=new THREE.Clock();
+    function tick(){ const dt=Math.min(clock.getDelta(),.05); const t=performance.now(); if(running&&!finished){ elapsed=(t-startTime)/1000; const steer=(keys.a||keys.arrowleft?-1:0)+(keys.d||keys.arrowright?1:0); const forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0); yaw += steer*dt*.9; const target=forward>0?(.115+(boost?.065:0)):.105; speed += (target-speed)*dt*2.8; if(!forward) speed += (.05-speed)*dt*1.4; x += Math.sin(yaw)*speed*dt*18; z -= Math.cos(yaw)*speed*dt*18; x=Math.max(-13,Math.min(13,x)); boat.position.x += (x-boat.position.x)*.4; boat.position.z += (z-boat.position.z)*.4; boat.rotation.y = Math.PI+yaw; progress=Math.max(0,Math.min(1,(3-z)/66)); timerEl.textContent=fmt(elapsed); speedEl.innerHTML=`${(speed*78).toFixed(1)} <small>节</small>`; fill.style.width=`${Math.max(4,progress*100)}%`; if(z<-62){ finished=true; running=false; toast.classList.add('show'); status.textContent='冲线成功 · 点击开始再来一局'; } }
+      boat.position.y=.12+Math.sin(t*.004)*.05; wake.material.opacity=.28+speed*1.8; camera.position.x += (boat.position.x*.18-camera.position.x)*dt*1.4; camera.position.z += ((boat.position.z+14)-camera.position.z)*dt*1.1; camera.lookAt(boat.position.x*.45,1.1,boat.position.z-13); water.rotation.z=Math.sin(t*.00018)*.002; renderer.render(scene,camera); requestAnimationFrame(tick); }
+    reset(); tick();
+  </script>
+</body>
+</html>
